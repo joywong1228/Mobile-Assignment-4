@@ -1,52 +1,52 @@
 import { supabase } from "./supabase";
 
-// Define the type for your data
-export interface SampleData {
-  id?: number;
-  created_at?: string;
-  name: string;
+export interface UserDetails {
+  uuid?: string;
+  FirstName: string;
+  LastName: string;
+  Email: string;
+  password?: string; // optional when updating
 }
 
 const tableName = "user_details";
 
-// CREATE - Add new data
-export const createUser = async (name: string) => {
+// CREATE a new user
+export const createUser = async (user: UserDetails) => {
   const { data, error } = await supabase
     .from(tableName)
-    .insert([{ name }])
+    .insert([user])
     .select();
-
   if (error) throw error;
   return data;
 };
 
-// READ - Get all data
+// READ all users
 export const getUsers = async () => {
   const { data, error } = await supabase
     .from(tableName)
     .select("*")
-    .order("created_at", { ascending: false });
-
+    .order("FirstName", { ascending: true });
   if (error) throw error;
   return data;
 };
 
-// UPDATE - Update existing data
-export const updateUser = async (id: number, name: string) => {
+// UPDATE user by UUID
+export const updateUser = async (
+  uuid: string,
+  updates: Partial<UserDetails>
+) => {
   const { data, error } = await supabase
     .from(tableName)
-    .update({ name })
-    .eq("id", id)
+    .update(updates)
+    .eq("uuid", uuid)
     .select();
-
   if (error) throw error;
   return data;
 };
 
-// DELETE - Delete data
-export const deleteUser = async (id: number) => {
-  const { error } = await supabase.from(tableName).delete().eq("id", id);
-
+// DELETE user by UUID
+export const deleteUser = async (uuid: string) => {
+  const { error } = await supabase.from(tableName).delete().eq("uuid", uuid);
   if (error) throw error;
   return true;
 };

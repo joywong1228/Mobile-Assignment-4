@@ -1,3 +1,8 @@
+// Fix for Hermes: Add structuredClone polyfill
+if (typeof global.structuredClone !== "function") {
+  global.structuredClone = (val) => JSON.parse(JSON.stringify(val));
+}
+
 import { useState, useEffect } from "react";
 import {
   View,

@@ -26,7 +26,16 @@ export default function Page() {
   };
 
   useEffect(() => {
-    fetchData();
+    const testConnection = async () => {
+      const { data, error } = await supabase.from("user_details").select("*");
+      if (error) {
+        console.log("Supabase Error", error.message);
+      } else {
+        console.log("Supabase Connected. Sample:", data?.[0]);
+      }
+    };
+
+    testConnection();
   }, []);
 
   return (
