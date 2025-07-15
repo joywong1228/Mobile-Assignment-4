@@ -1,4 +1,9 @@
-import { useState } from "react";
+// Fix for Hermes: Add structuredClone polyfill
+if (typeof global.structuredClone !== "function") {
+  global.structuredClone = (val) => JSON.parse(JSON.stringify(val));
+}
+
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,70 +16,36 @@ import {
 import { useRouter } from "expo-router";
 import { supabase } from "./lib/supabase";
 
-export default function SignUp() {
+export default function SignIn() {
   const router = useRouter();
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSignUp = async () => {
-    if (!firstName || !lastName || !email || !password) {
-      Alert.alert("Missing fields", "Please fill in all fields.");
-      return;
-    }
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) router.replace("/landing");
+    });
+  }, []);
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
-
-    if (error) {
-      Alert.alert("Sign-up failed", error.message);
-      return;
-    }
-
-    const userId = data.user?.id;
-    if (!userId) {
-      Alert.alert("Error", "No user ID returned.");
-      return;
-    }
-
-    const { error: insertError } = await supabase.from("user_details").insert({
-      uuid: userId,
-      FirstName: firstName,
-      LastName: lastName,
-      Email: email,
+  const handleSignIn = async () => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
 
-    if (insertError) {
-      Alert.alert("Insert failed", insertError.message);
-      return;
+    if (error) {
+      Alert.alert("Sign-in failed", error.message);
+    } else {
+      router.replace("/landing");
     }
-
-    Alert.alert("Success", "Account created!");
-    // You can optionally navigate here
-    // router.replace("/signin");
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🚀 Create Account</Text>
-      <Text style={styles.subtitle}>Sign up to get started</Text>
+      <Text style={styles.title}>👋 Welcome Back</Text>
+      <Text style={styles.subtitle}>Sign in to your account</Text>
 
-      <TextInput
-        placeholder="First Name"
-        placeholderTextColor="#999"
-        style={styles.input}
-        value={firstName}
-        onChangeText={setFirstName}
-      />
-      <TextInput
-        placeholder="Last Name"
-        placeholderTextColor="#999"
-        style={styles.input}
-        value={lastName}
-        onChangeText={setLastName}
-      />
       <TextInput
         placeholder="Email"
         placeholderTextColor="#999"
@@ -84,6 +55,7 @@ export default function SignUp() {
         keyboardType="email-address"
         autoCapitalize="none"
       />
+
       <View style={styles.passwordContainer}>
         <TextInput
           placeholder="Password"
@@ -98,12 +70,18 @@ export default function SignUp() {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-        <Text style={styles.buttonText}>Sign Up</Text>
+      <TouchableOpacity style={styles.button} onPress={handleSignIn}>
+        <Text style={styles.buttonText}>Sign In</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/signin")}>
-        <Text style={styles.link}>Already have an account? Sign In</Text>
+      <TouchableOpacity onPress={() => router.push("/signup")}>
+        <Text style={styles.link}>Don't have an account? Sign Up</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.push("/test")}>
+        <Text style={[styles.link, { marginTop: 10 }]}>
+          TEST: View All Users
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -112,7 +90,7 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#0f172a", // dark slate
     padding: 24,
     justifyContent: "center",
   },
