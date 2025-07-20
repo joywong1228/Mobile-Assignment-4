@@ -30,10 +30,14 @@ export default function Landing() {
         .from("user_details")
         .select("FirstName, LastName")
         .eq("uuid", user.id)
-        .single(); 
+        .maybeSingle();
+
+      console.log("Signed in user ID:", user.id);
 
       if (error) {
         console.error("Error fetching user details:", error.message);
+      } else if (!data) {
+        console.warn("No user detail found for this UUID");
       } else {
         setFullName(`${data.FirstName} ${data.LastName}`);
       }
