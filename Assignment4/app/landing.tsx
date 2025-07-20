@@ -12,6 +12,35 @@ import { useRouter } from "expo-router";
 export default function Landing() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        console.error("Auth error or no user", authError);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("user_details")
+        .select("FirstName, LastName")
+        .eq("uuid", user.id)
+        .single(); 
+
+      if (error) {
+        console.error("Error fetching user details:", error.message);
+      } else {
+        setFullName(`${data.FirstName} ${data.LastName}`);
+      }
+    };
+
+    fetchUserDetails();
+  }, []);
 
   const handleSignOut = async () => {
     setLoading(true);
@@ -21,7 +50,9 @@ export default function Landing() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.welcome}>🎉 Welcome</Text>
+      <Text style={styles.welcome}>
+        🎉 Welcome{fullName ? `, ${fullName}!` : "!"}
+      </Text>
       <Text style={styles.subtitle}>You are successfully signed in!</Text>
       <Text style={styles.description}>
         This is the landing page of your app.
