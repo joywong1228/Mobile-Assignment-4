@@ -80,7 +80,7 @@ export default function SignIn() {
 
       <TouchableOpacity onPress={() => router.push("/test")}>
         <Text style={[styles.link, { marginTop: 10 }]}>
-          TEST: View All Users
+          TEST: Database fetching
         </Text>
       </TouchableOpacity>
     </View>

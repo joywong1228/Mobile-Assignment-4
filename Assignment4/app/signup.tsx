@@ -7,6 +7,10 @@ import {
   Alert,
   StyleSheet,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "./lib/supabase";
@@ -26,7 +30,11 @@ export default function SignUp() {
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: "" }, // Prevent auto-login
+    });
 
     if (error) {
       Alert.alert("Sign-up failed", error.message);
@@ -51,61 +59,91 @@ export default function SignUp() {
       return;
     }
 
-    Alert.alert("Success", "Account created!");
-    // You can optionally navigate here
+    await supabase.auth.signOut();
+
+    Alert.alert(
+      "Success",
+      "Account created! Want to go to login?",
+      [
+        {
+          text: "Yes",
+          onPress: () => router.replace("/signin"),
+        },
+        {
+          text: "Stay",
+          style: "cancel",
+        },
+      ],
+      { cancelable: true }
+    ); // You can optionally navigate here
     // router.replace("/signin");
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🚀 Create Account</Text>
-      <Text style={styles.subtitle}>Sign up to get started</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.container}>
+            <Text style={styles.title}>🚀 Create Account</Text>
+            <Text style={styles.subtitle}>Sign up to get started</Text>
 
-      <TextInput
-        placeholder="First Name"
-        placeholderTextColor="#999"
-        style={styles.input}
-        value={firstName}
-        onChangeText={setFirstName}
-      />
-      <TextInput
-        placeholder="Last Name"
-        placeholderTextColor="#999"
-        style={styles.input}
-        value={lastName}
-        onChangeText={setLastName}
-      />
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor="#999"
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <View style={styles.passwordContainer}>
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#999"
-          style={[styles.input, { flex: 1, marginBottom: 0 }]}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={!showPassword}
-        />
-        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-          <Text style={styles.toggleBtn}>{showPassword ? "Hide" : "Show"}</Text>
-        </TouchableOpacity>
-      </View>
+            <TextInput
+              placeholder="First Name"
+              placeholderTextColor="#999"
+              style={styles.input}
+              value={firstName}
+              onChangeText={setFirstName}
+            />
+            <TextInput
+              placeholder="Last Name"
+              placeholderTextColor="#999"
+              style={styles.input}
+              value={lastName}
+              onChangeText={setLastName}
+            />
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor="#999"
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder="Password"
+                placeholderTextColor="#999"
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Text style={styles.toggleBtn}>
+                  {showPassword ? "Hide" : "Show"}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-        <Text style={styles.buttonText}>Sign Up</Text>
-      </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+              <Text style={styles.buttonText}>Sign Up</Text>
+            </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/signin")}>
-        <Text style={styles.link}>Already have an account? Sign In</Text>
-      </TouchableOpacity>
-    </View>
+            <TouchableOpacity onPress={() => router.push("/signin")}>
+              <Text style={styles.link}>Already have an account? Sign In</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -171,5 +209,9 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     textAlign: "center",
     fontSize: 17,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
   },
 });
