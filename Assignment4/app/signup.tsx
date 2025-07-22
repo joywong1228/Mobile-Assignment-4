@@ -14,11 +14,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "./lib/supabase";
-import { createUser } from "./lib/supabase_crud"; // Import createUser
 
 export default function SignUp() {
   const router = useRouter();
-
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -31,51 +29,31 @@ export default function SignUp() {
       return;
     }
 
-    try {
-      // Step 1: Sign up with email confirmation required
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          // Store additional data in user metadata for later use
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-          }
-        }
-      });
-
-      if (error) {
-        Alert.alert("Sign-up failed", error.message);
-        return;
-      }
-
-    const userId = data.user?.id;
-    if (!userId) {
-      Alert.alert("Error", "No user ID returned.");
-      return;
-    }
-
-    const { error: insertError } = await supabase.from("user_details").insert({
-      uuid: userId,
-      FirstName: firstName,
-      LastName: lastName,
-      Email: email,
+    // 1. Sign up via Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // Save extra data to user_metadata (optional, not used in DB insert)
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+        },
+      },
     });
 
-    if (insertError) {
-      Alert.alert("Insert failed", insertError.message);
+    if (error) {
+      Alert.alert("Sign-up failed", error.message);
       return;
     }
 
-    await supabase.auth.signOut();
-
+    // 2. Prompt user to check their email
     Alert.alert(
       "Success",
-      "Account created! Want to go to login?",
+      "Account created! Please confirm your email before logging in.",
       [
         {
-          text: "Yes",
+          text: "Go to Login",
           onPress: () => router.replace("/signin"),
         },
         {
@@ -84,8 +62,7 @@ export default function SignUp() {
         },
       ],
       { cancelable: true }
-    ); // You can optionally navigate here
-    // router.replace("/signin");
+    );
   };
 
   return (
@@ -102,7 +79,6 @@ export default function SignUp() {
           <View style={styles.container}>
             <Text style={styles.title}>🚀 Create Account</Text>
             <Text style={styles.subtitle}>Sign up to get started</Text>
-
             <TextInput
               placeholder="First Name"
               placeholderTextColor="#999"

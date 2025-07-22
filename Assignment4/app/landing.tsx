@@ -28,7 +28,7 @@ export default function Landing() {
         return;
       }
 
-      // Fixed column names to match database schema
+      // Check if user_details exists
       const { data, error } = await supabase
         .from("user_details")
         .select("first_name, last_name")
@@ -37,13 +37,31 @@ export default function Landing() {
 
       if (error) {
         console.error("Error fetching user details:", error.message);
-      } else if (!data) {
-        console.warn("No user detail found for this UUID");
+        return;
+      }
+
+      if (!data) {
+        // If not found, insert the details
+        // You can get first/last name from user.user_metadata if you stored it at sign-up
+        const { user_metadata } = user;
+        if (user_metadata?.first_name && user_metadata?.last_name) {
+          const { error: insertError } = await supabase
+            .from("user_details")
+            .insert({
+              uuid: user.id,
+              first_name: user_metadata.first_name,
+              last_name: user_metadata.last_name,
+              email: user.email,
+            });
+          if (!insertError) {
+            setFullName(
+              `${user_metadata.first_name} ${user_metadata.last_name}`
+            );
+          }
+        }
       } else {
         setFullName(`${data.first_name} ${data.last_name}`);
       }
-
-      setFullName(`${data.FirstName} ${data.LastName}`);
     };
 
     fetchOrInsertUserDetails();
