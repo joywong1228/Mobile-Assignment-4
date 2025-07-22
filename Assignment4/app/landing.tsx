@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { supabase } from "./lib/supabase";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Landing() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function Landing() {
   const [fullName, setFullName] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUserDetails = async () => {
+    const fetchOrInsertUserDetails = async () => {
       const {
         data: { user },
         error: authError,
@@ -26,24 +27,53 @@ export default function Landing() {
         return;
       }
 
+      // 1. Try to fetch user_details
       const { data, error } = await supabase
         .from("user_details")
         .select("FirstName, LastName")
         .eq("uuid", user.id)
         .maybeSingle();
 
-      console.log("Signed in user ID:", user.id);
-
       if (error) {
         console.error("Error fetching user details:", error.message);
-      } else if (!data) {
-        console.warn("No user detail found for this UUID");
-      } else {
-        setFullName(`${data.FirstName} ${data.LastName}`);
+        return;
       }
+
+      if (!data) {
+        // 2. Try to get from AsyncStorage (from sign-up step)
+        const firstName = await AsyncStorage.getItem("pendingUserFirstName");
+        const lastName = await AsyncStorage.getItem("pendingUserLastName");
+
+        if (firstName && lastName) {
+          // 3. Insert into user_details
+          const { error: insertError } = await supabase
+            .from("user_details")
+            .insert({
+              uuid: user.id,
+              FirstName: firstName,
+              LastName: lastName,
+              Email: user.email,
+            });
+          if (insertError) {
+            console.error("Insert failed:", insertError.message);
+            setFullName(null);
+            return;
+          }
+          setFullName(`${firstName} ${lastName}`);
+          // Clean up storage
+          await AsyncStorage.removeItem("pendingUserFirstName");
+          await AsyncStorage.removeItem("pendingUserLastName");
+        } else {
+          setFullName(null);
+          // Optionally, navigate user to a profile completion page or show a prompt
+        }
+        return;
+      }
+
+      setFullName(`${data.FirstName} ${data.LastName}`);
     };
 
-    fetchUserDetails();
+    fetchOrInsertUserDetails();
   }, []);
 
   const handleSignOut = async () => {

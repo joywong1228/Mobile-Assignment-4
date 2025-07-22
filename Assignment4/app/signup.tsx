@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "./lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SignUp() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function SignUp() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: "" }, // Prevent auto-login
+      options: { emailRedirectTo: "" },
     });
 
     if (error) {
@@ -41,42 +42,23 @@ export default function SignUp() {
       return;
     }
 
-    const userId = data.user?.id;
-    if (!userId) {
-      Alert.alert("Error", "No user ID returned.");
-      return;
-    }
-
-    const { error: insertError } = await supabase.from("user_details").insert({
-      uuid: userId,
-      FirstName: firstName,
-      LastName: lastName,
-      Email: email,
-    });
-
-    if (insertError) {
-      Alert.alert("Insert failed", insertError.message);
-      return;
-    }
+    // Do NOT insert into user_details here!
+    // Store names for later
+    await AsyncStorage.setItem("pendingUserFirstName", firstName);
+    await AsyncStorage.setItem("pendingUserLastName", lastName);
 
     await supabase.auth.signOut();
 
     Alert.alert(
       "Success",
-      "Account created! Want to go to login?",
+      "Account created! Please confirm your email and then sign in.",
       [
         {
-          text: "Yes",
+          text: "OK",
           onPress: () => router.replace("/signin"),
         },
-        {
-          text: "Stay",
-          style: "cancel",
-        },
-      ],
-      { cancelable: true }
-    ); // You can optionally navigate here
-    // router.replace("/signin");
+      ]
+    );
   };
 
   return (
