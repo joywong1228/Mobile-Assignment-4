@@ -12,6 +12,7 @@ import {
   Alert,
   StyleSheet,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "./lib/supabase";
@@ -21,23 +22,39 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Check if user is already signed in
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) router.replace("/landing");
     });
   }, []);
 
   const handleSignIn = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    if (!email || !password) {
+      Alert.alert("Missing fields", "Please enter both email and password.");
+      return;
+    }
 
-    if (error) {
-      Alert.alert("Sign-in failed", error.message);
-    } else {
-      router.replace("/landing");
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        Alert.alert("Sign-in failed", error.message);
+      } else {
+        // Navigate to landing page on successful sign-in
+        router.replace("/landing");
+      }
+    } catch (err) {
+      console.error("Sign in error:", err);
+      Alert.alert("Error", "An unexpected error occurred during sign-in.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,6 +71,7 @@ export default function SignIn() {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        editable={!loading}
       />
 
       <View style={styles.passwordContainer}>
@@ -64,22 +82,42 @@ export default function SignIn() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!showPassword}
+          editable={!loading}
         />
-        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+        <TouchableOpacity 
+          onPress={() => setShowPassword(!showPassword)}
+          disabled={loading}
+        >
           <Text style={styles.toggleBtn}>{showPassword ? "Hide" : "Show"}</Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleSignIn}>
-        <Text style={styles.buttonText}>Sign In</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleSignIn}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#0f172a" />
+        ) : (
+          <Text style={styles.buttonText}>Sign In</Text>
+        )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/signup")}>
-        <Text style={styles.link}>Don't have an account? Sign Up</Text>
+      <TouchableOpacity 
+        onPress={() => router.push("/signup")}
+        disabled={loading}
+      >
+        <Text style={[styles.link, loading && styles.linkDisabled]}>
+          Don't have an account? Sign Up
+        </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/test")}>
-        <Text style={[styles.link, { marginTop: 10 }]}>
+      <TouchableOpacity 
+        onPress={() => router.push("/test")}
+        disabled={loading}
+      >
+        <Text style={[styles.link, { marginTop: 10 }, loading && styles.linkDisabled]}>
           TEST: Database fetching
         </Text>
       </TouchableOpacity>
@@ -140,6 +178,9 @@ const styles = StyleSheet.create({
     elevation: Platform.OS === "android" ? 5 : 0,
     marginBottom: 16,
   },
+  buttonDisabled: {
+    backgroundColor: "#64748b",
+  },
   buttonText: {
     color: "#0f172a",
     fontSize: 16,
@@ -149,5 +190,8 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     textAlign: "center",
     fontSize: 17,
+  },
+  linkDisabled: {
+    color: "#64748b",
   },
 });

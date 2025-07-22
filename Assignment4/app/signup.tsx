@@ -30,53 +30,56 @@ export default function SignUp() {
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: "" }, // Prevent auto-login
-    });
+    try {
+      // Step 1: Sign up with email confirmation required
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          // Store additional data in user metadata for later use
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          }
+        }
+      });
 
-    if (error) {
-      Alert.alert("Sign-up failed", error.message);
-      return;
+      if (error) {
+        Alert.alert("Sign-up failed", error.message);
+        return;
+      }
+
+      if (data.user && !data.user.email_confirmed_at) {
+        // User needs to confirm email
+        Alert.alert(
+          "Check your email",
+          "We've sent you a confirmation link. Please check your email and click the link to activate your account.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.replace("/signin"),
+            },
+          ],
+          { cancelable: false }
+        );
+      } else {
+        // This shouldn't happen with email confirmation enabled, but just in case
+        Alert.alert(
+          "Success",
+          "Account created! Please sign in.",
+          [
+            {
+              text: "Go to Sign In",
+              onPress: () => router.replace("/signin"),
+            },
+          ],
+          { cancelable: false }
+        );
+      }
+    } catch (err) {
+      console.error("Signup error:", err);
+      Alert.alert("Error", "An unexpected error occurred during signup.");
     }
-
-    const userId = data.user?.id;
-    if (!userId) {
-      Alert.alert("Error", "No user ID returned.");
-      return;
-    }
-
-    const { error: insertError } = await supabase.from("user_details").insert({
-      uuid: userId,
-      FirstName: firstName,
-      LastName: lastName,
-      Email: email,
-    });
-
-    if (insertError) {
-      Alert.alert("Insert failed", insertError.message);
-      return;
-    }
-
-    await supabase.auth.signOut();
-
-    Alert.alert(
-      "Success",
-      "Account created! Want to go to login?",
-      [
-        {
-          text: "Yes",
-          onPress: () => router.replace("/signin"),
-        },
-        {
-          text: "Stay",
-          style: "cancel",
-        },
-      ],
-      { cancelable: true }
-    ); // You can optionally navigate here
-    // router.replace("/signin");
   };
 
   return (

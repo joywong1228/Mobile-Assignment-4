@@ -23,12 +23,14 @@ export default function Landing() {
 
       if (authError || !user) {
         console.error("Auth error or no user", authError);
+        router.replace("/signin");
         return;
       }
 
+      // Fixed column names to match database schema
       const { data, error } = await supabase
         .from("user_details")
-        .select("FirstName, LastName")
+        .select("first_name, last_name")
         .eq("uuid", user.id)
         .maybeSingle();
 
@@ -39,7 +41,7 @@ export default function Landing() {
       } else if (!data) {
         console.warn("No user detail found for this UUID");
       } else {
-        setFullName(`${data.FirstName} ${data.LastName}`);
+        setFullName(`${data.first_name} ${data.last_name}`);
       }
     };
 
@@ -86,11 +88,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
     marginBottom: 12,
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 18,
     color: "#cbd5e1",
     marginBottom: 8,
+    textAlign: "center",
   },
   description: {
     fontSize: 16,
