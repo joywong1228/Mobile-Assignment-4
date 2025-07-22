@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { supabase } from "./lib/supabase";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Landing() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function Landing() {
   const [fullName, setFullName] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUserDetails = async () => {
+    const fetchOrInsertUserDetails = async () => {
       const {
         data: { user },
         error: authError,
@@ -34,8 +35,6 @@ export default function Landing() {
         .eq("uuid", user.id)
         .maybeSingle();
 
-      console.log("Signed in user ID:", user.id);
-
       if (error) {
         console.error("Error fetching user details:", error.message);
       } else if (!data) {
@@ -43,9 +42,11 @@ export default function Landing() {
       } else {
         setFullName(`${data.first_name} ${data.last_name}`);
       }
+
+      setFullName(`${data.FirstName} ${data.LastName}`);
     };
 
-    fetchUserDetails();
+    fetchOrInsertUserDetails();
   }, []);
 
   const handleSignOut = async () => {

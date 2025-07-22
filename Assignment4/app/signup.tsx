@@ -50,53 +50,42 @@ export default function SignUp() {
         return;
       }
 
-      if (data.user) {
-        // Step 2: If sign-up is successful, create an entry in the user_details table
-        try {
-          await createUser({
-            uuid: data.user.id, // Use the user's UUID from the auth.users table
-            first_name: firstName,
-            last_name: lastName,
-            email: email,
-          });
-        } catch (dbError) {
-          console.error("Error creating user details in DB:", dbError);
-          Alert.alert("Sign-up Warning", "Account created, but failed to save user details. Please contact support.");
-          // You might want to handle this more robustly, e.g., by logging the user out or providing a way to retry.
-        }
-
-        if (!data.user.email_confirmed_at) {
-          // User needs to confirm email
-          Alert.alert(
-            "Check your email",
-            "We've sent you a confirmation link. Please check your email and click the link to activate your account.",
-            [
-              {
-                text: "OK",
-                onPress: () => router.replace("/signin"),
-              },
-            ],
-            { cancelable: false }
-          );
-        } else {
-          // This shouldn't happen with email confirmation enabled, but just in case
-          Alert.alert(
-            "Success",
-            "Account created! Please sign in.",
-            [
-              {
-                text: "Go to Sign In",
-                onPress: () => router.replace("/signin"),
-              },
-            ],
-            { cancelable: false }
-          );
-        }
-      }
-    } catch (err) {
-      console.error("Signup error:", err);
-      Alert.alert("Error", "An unexpected error occurred during signup.");
+    const userId = data.user?.id;
+    if (!userId) {
+      Alert.alert("Error", "No user ID returned.");
+      return;
     }
+
+    const { error: insertError } = await supabase.from("user_details").insert({
+      uuid: userId,
+      FirstName: firstName,
+      LastName: lastName,
+      Email: email,
+    });
+
+    if (insertError) {
+      Alert.alert("Insert failed", insertError.message);
+      return;
+    }
+
+    await supabase.auth.signOut();
+
+    Alert.alert(
+      "Success",
+      "Account created! Want to go to login?",
+      [
+        {
+          text: "Yes",
+          onPress: () => router.replace("/signin"),
+        },
+        {
+          text: "Stay",
+          style: "cancel",
+        },
+      ],
+      { cancelable: true }
+    ); // You can optionally navigate here
+    // router.replace("/signin");
   };
 
   return (
